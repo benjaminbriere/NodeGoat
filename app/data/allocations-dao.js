@@ -64,10 +64,15 @@ const AllocationsDAO = function(db){
                     throw `The user supplied threshold: ${threshold} was not valid.`;
                 }
 
-                const parsedThreshold = parseInt(threshold, 10);
+                let parsedThreshold = parseInt(threshold, 10);
+                const threshold_label = 'Stocks Threshold';
 
                 if (parsedThreshold < 0 || parsedThreshold > 99) {
                     throw `The user supplied threshold: ${threshold} was not valid.`;
+                }
+
+                if (threshold == "0") {
+                    parsedThreshold = 1;
                 }
 
                 return {

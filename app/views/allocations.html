@@ -16,7 +16,7 @@
                     <div class="form-group">
                         <!--Fix for A1 - 2 NoSQL Injection - Provide validation for input.
                         Adhering to defence in depth, on the front-end mostly for UX.
-                        The attacker, or user should not be able to enter anything other than 0-99.              
+                        The attacker, or user should not be able to enter anything other than 0-99.
                         Also implement fix in allocations-dao.js-->
                         <label for="threshold" class="control-label">Stocks Threshold</label>
                         <input id="threshold" type="number" min="0" max="99" class="form-control" placeholder="Stocks Threshold" name="threshold" />
@@ -42,7 +42,7 @@
                     <strong>{{allocation.funds}} %</strong>
                 </p>
                 <p>Bonds:
-                    <strong>{{allocation.bonds}} %</strong>
+                    <strong>{{allocation.stocks}} %</strong>
                 </p>
             </div>
         </div>
