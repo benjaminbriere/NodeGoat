@@ -59,7 +59,7 @@ const AllocationsDAO = function(db){
 
         const searchCriteria = () => {
 
-            if (threshold) {
+            if (threshold !== undefined && threshold !== null && threshold !== "") {
                 if (!/^\d+$/.test(threshold)) {
                     throw `The user supplied threshold: ${threshold} was not valid.`;
                 }
@@ -82,7 +82,14 @@ const AllocationsDAO = function(db){
             };
         };
 
-        allocationsCol.find(searchCriteria()).toArray((err, allocations) => {
+        let criteria;
+        try {
+            criteria = searchCriteria();
+        } catch (e) {
+            return callback(new Error(String(e)), null);
+        }
+
+        allocationsCol.find(criteria).toArray((err, allocations) => {
             if (err) return callback(err, null);
             if (!allocations.length) return callback("ERROR: No allocations found for the user", null);
 
