@@ -3,9 +3,9 @@
 <div class="row">
     <div class="col-lg-12">
 
-        <div class="panel panel-default">
+        <section class="panel panel-default" aria-labelledby="allocations-filter-title">
             <div class="panel-heading">
-                <h3 class="panel-title">
+                <h3 id="allocations-filter-title" class="panel-title">
                     Filter Assets based on Stock Performance
                 </h3>
             </div>
@@ -19,33 +19,32 @@
                         The attacker, or user should not be able to enter anything other than 0-99.
                         Also implement fix in allocations-dao.js-->
                         <label for="threshold" class="control-label">Stocks Threshold</label>
-                        <input id="threshold" type="number" min="0" max="99" class="form-control" placeholder="Stocks Threshold" name="threshold" />
-                        <p class="help-block">Using above threshold value, it will return all assets allocation above the specified stocks percentage number.</p>
+                        <input id="threshold" type="number" min="0" max="99" class="form-control" placeholder="Stocks Threshold" name="threshold" aria-describedby="threshold-help" />
+                        <p id="threshold-help" class="help-block">Using above threshold value, it will return all assets allocation above the specified stocks percentage number.</p>
                     </div>
 
                     <button type="submit" class="btn btn-primary">Submit</button>
                 </form>
 
             </div>
-        </div>
+        </section>
 
         {% for allocation in allocations %}
-        <div class="panel panel-info">
+        <section class="panel panel-info">
             <div class="panel-heading">
                 <strong>Asset Allocations for {{allocation.firstName}} {{allocation.lastName}}</strong>
             </div>
             <div class="panel-body">
-                <p>Domestic Stocks :
-                    <strong>{{allocation.stocks}} %</strong>
-                </p>
-                <p>Funds:
-                    <strong>{{allocation.funds}} %</strong>
-                </p>
-                <p>Bonds:
-                    <strong>{{allocation.stocks}} %</strong>
-                </p>
+                <dl class="dl-horizontal">
+                    <dt>Domestic Stocks</dt>
+                    <dd><strong>{{allocation.stocks}} %</strong></dd>
+                    <dt>Funds</dt>
+                    <dd><strong>{{allocation.funds}} %</strong></dd>
+                    <dt>Bonds</dt>
+                    <dd><strong>{{allocation.bonds}} %</strong></dd>
+                </dl>
             </div>
-        </div>
+        </section>
         {% endfor %}
 
     </div>

@@ -1,5 +1,66 @@
 const UserDAO = require("./user-dao").UserDAO;
 
+const THRESHOLD_MIN = 0;
+const THRESHOLD_MAX = 99;
+
+const hasThreshold = threshold => {
+    return threshold !== undefined && threshold !== null && threshold !== "";
+};
+
+const parseNumericValue = (value, fieldName) => {
+    if (!/^\d+$/.test(String(value))) {
+        throw new Error(`The user supplied ${fieldName}: ${value} was not valid.`);
+    }
+
+    return parseInt(value, 10);
+};
+
+const parseUserId = userId => {
+    return parseNumericValue(userId, "userId");
+};
+
+const parseThreshold = threshold => {
+    const parsedThreshold = parseNumericValue(threshold, "threshold");
+
+    if (parsedThreshold < THRESHOLD_MIN || parsedThreshold > THRESHOLD_MAX) {
+        throw new Error(`The user supplied threshold: ${threshold} was not valid.`);
+    }
+
+    return parsedThreshold;
+};
+
+const buildAllocationsDocument = (userId, stocks, funds, bonds) => {
+    return {
+        userId: parseUserId(userId),
+        stocks,
+        funds,
+        bonds
+    };
+};
+
+const buildAllocationsCriteria = (userId, threshold) => {
+    const parsedUserId = parseUserId(userId);
+    const criteria = {
+        userId: parsedUserId
+    };
+
+    if (hasThreshold(threshold)) {
+        criteria.stocks = {
+            $gte: parseThreshold(threshold)
+        };
+    }
+
+    return criteria;
+};
+
+const addUserDetails = (allocation, user) => {
+    allocation.userName = user.userName;
+    allocation.firstName = user.firstName;
+    allocation.lastName = user.lastName;
+
+    return allocation;
+};
+
 /* The AllocationsDAO must be constructed with a connected database object */
 const AllocationsDAO = function(db){
 
@@ -16,82 +77,38 @@ const AllocationsDAO = function(db){
     const userDAO = new UserDAO(db);
 
     this.update = (userId, stocks, funds, bonds, callback) => {
-        const parsedUserId = parseInt(userId, 10);
+        let allocations;
 
-        // Create allocations document
-        const allocations = {
-            userId: userId,
-            stocks: stocks,
-            funds: funds,
-            bonds: bonds
-        };
+        try {
+            allocations = buildAllocationsDocument(userId, stocks, funds, bonds);
+        } catch (e) {
+            return callback(e, null);
+        }
 
         allocationsCol.update({
-            userId: parsedUserId
+            userId: allocations.userId
         }, allocations, {
             upsert: true
         }, err => {
+            if (err) return callback(err, null);
 
-            if (!err) {
+            console.log("Updated allocations");
 
-                console.log("Updated allocations");
+            userDAO.getUserById(allocations.userId, (err, user) => {
+                if (err) return callback(err, null);
 
-                userDAO.getUserById(userId, (err, user) => {
-
-                    if (err) return callback(err, null);
-
-                    // add user details
-                    allocations.userId = userId;
-                    allocations.userName = user.userName;
-                    allocations.firstName = user.firstName;
-                    allocations.lastName = user.lastName;
-
-                    return callback(null, allocations);
-                });
-            }
-
-            return callback(err, null);
+                return callback(null, addUserDetails(allocations, user));
+            });
         });
     };
 
     this.getByUserIdAndThreshold = (userId, threshold, callback) => {
-        const parsedUserId = parseInt(userId, 10);
-
-        const searchCriteria = () => {
-
-            if (threshold !== undefined && threshold !== null && threshold !== "") {
-                if (!/^\d+$/.test(threshold)) {
-                    throw `The user supplied threshold: ${threshold} was not valid.`;
-                }
-
-                let parsedThreshold = parseInt(threshold, 10);
-                const threshold_label = 'Stocks Threshold';
-
-                if (parsedThreshold < 0 || parsedThreshold > 99) {
-                    throw `The user supplied threshold: ${threshold} was not valid.`;
-                }
-
-                if (threshold == "0") {
-                    parsedThreshold = 1;
-                }
-
-                return {
-                    userId: parsedUserId,
-                    stocks: {
-                        $gt: parsedThreshold
-                    }
-                };
-            }
-            return {
-                userId: parsedUserId
-            };
-        };
-
         let criteria;
+
         try {
-            criteria = searchCriteria();
+            criteria = buildAllocationsCriteria(userId, threshold);
         } catch (e) {
-            return callback(new Error(String(e)), null);
+            return callback(e, null);
         }
 
         allocationsCol.find(criteria).toArray((err, allocations) => {
@@ -101,16 +118,12 @@ const AllocationsDAO = function(db){
             let doneCounter = 0;
             const userAllocations = [];
 
-            allocations.forEach( alloc => {
-                userDAO.getUserById(alloc.userId, (err, user) => {
+            allocations.forEach(allocation => {
+                userDAO.getUserById(allocation.userId, (err, user) => {
                     if (err) return callback(err, null);
 
-                    alloc.userName = user.userName;
-                    alloc.firstName = user.firstName;
-                    alloc.lastName = user.lastName;
-
                     doneCounter += 1;
-                    userAllocations.push(alloc);
+                    userAllocations.push(addUserDetails(allocation, user));
 
                     if (doneCounter === allocations.length) {
                         callback(null, userAllocations);
