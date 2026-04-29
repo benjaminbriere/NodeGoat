@@ -16,7 +16,7 @@ const AllocationsDAO = function(db){
     const userDAO = new UserDAO(db);
 
     this.update = (userId, stocks, funds, bonds, callback) => {
-        const parsedUserId = parseInt(userId);
+        const parsedUserId = parseInt(userId, 10);
 
         // Create allocations document
         const allocations = {
@@ -55,27 +55,26 @@ const AllocationsDAO = function(db){
     };
 
     this.getByUserIdAndThreshold = (userId, threshold, callback) => {
-        const parsedUserId = parseInt(userId);
+        const parsedUserId = parseInt(userId, 10);
 
         const searchCriteria = () => {
 
-            if (threshold) {
-                /*
-                // Fix for A1 - 2 NoSQL Injection - escape the threshold parameter properly
-                // Fix this NoSQL Injection which doesn't sanitze the input parameter 'threshold' and allows attackers
-                // to inject arbitrary javascript code into the NoSQL query:
-                // 1. 0';while(true){}'
-                // 2. 1'; return 1 == '1
-                // Also implement fix in allocations.html for UX.                             
-                const parsedThreshold = parseInt(threshold, 10);
-                
-                if (parsedThreshold >= 0 && parsedThreshold <= 99) {
-                    return {$where: `this.userId == ${parsedUserId} && this.stocks > ${parsedThreshold}`};
+            if (threshold !== undefined && threshold !== null && threshold !== "") {
+                if (!/^\d+$/.test(threshold)) {
+                    throw `The user supplied threshold: ${threshold} was not valid.`;
                 }
-                throw `The user supplied threshold: ${parsedThreshold} was not valid.`;
-                */
+
+                const parsedThreshold = parseInt(threshold, 10);
+
+                if (parsedThreshold < 0 || parsedThreshold > 99) {
+                    throw `The user supplied threshold: ${threshold} was not valid.`;
+                }
+
                 return {
-                    $where: `this.userId == ${parsedUserId} && this.stocks > '${threshold}'`
+                    userId: parsedUserId,
+                    stocks: {
+                        $gt: parsedThreshold
+                    }
                 };
             }
             return {
@@ -83,7 +82,14 @@ const AllocationsDAO = function(db){
             };
         };
 
-        allocationsCol.find(searchCriteria()).toArray((err, allocations) => {
+        let criteria;
+        try {
+            criteria = searchCriteria();
+        } catch (e) {
+            return callback(new Error(String(e)), null);
+        }
+
+        allocationsCol.find(criteria).toArray((err, allocations) => {
             if (err) return callback(err, null);
             if (!allocations.length) return callback("ERROR: No allocations found for the user", null);
 
