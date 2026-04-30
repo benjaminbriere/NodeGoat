@@ -23,6 +23,17 @@ const buildAllocationsViewModel = (userId, allocations) => {
     };
 };
 
+/**
+ * Creates a request handler for allocations and registers a method to render the allocations view.
+ *
+ * The created handler exposes `displayAllocations(req, res, next)` which extracts the requested
+ * user ID and threshold from the request, loads the corresponding allocations, forwards any
+ * retrieval error to Express error handling, and renders the "allocations" view with the
+ * constructed view model.
+ *
+ * @constructor
+ * @param {Object} db - Database connection or client used to instantiate the AllocationsDAO.
+ */
 function AllocationsHandler(db) {
     "use strict";
 
